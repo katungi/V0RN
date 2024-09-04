@@ -1,132 +1,199 @@
 "use client";
-import { useState } from 'react'
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { MessageSquare, FileText, Smartphone, ChevronRight, Send } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Send } from 'lucide-react';
+import Editor from "@monaco-editor/react";
+import QRCode from 'qrcode.react';
+import { Snack, SDKVersion } from 'snack-sdk';
+import createWorkerTransport from '../components/transports/createWorkerTransport';
+import defaultCode from '../components/Defaults';
+
+const INITIAL_CODE_CHANGES_DELAY = 500;
+const VERBOSE = !!process.browser;
+const USE_WORKERS = true;
 
 export default function Component() {
+  const webPreviewRef = useRef(null);
   const [messages, setMessages] = useState([
     { role: 'assistant', content: 'Hello! How can I help you today?' },
     { role: 'user', content: 'Can you explain React hooks?' },
     { role: 'assistant', content: 'React hooks are functions that allow you to use state and other React features in functional components...' },
-  ])
-  const [inputMessage, setInputMessage] = useState('')
+  ]);
+  const [inputMessage, setInputMessage] = useState('');
+  const [code, setCode] = useState(defaultCode.files["App.js"].contents);
+  const [snack] = useState(
+    () =>
+      new Snack({
+        ...defaultCode,
+        disabled: !process.browser,
+        codeChangesDelay: INITIAL_CODE_CHANGES_DELAY,
+        verbose: VERBOSE,
+        webPreviewRef: process.browser ? webPreviewRef : undefined,
+        ...(USE_WORKERS ? { createTransport: createWorkerTransport } : {}),
+      })
+  );
+  const [snackState, setSnackState] = useState(snack.getState());
+  const [isSaving, setIsSaving] = useState(false);
+  const [codeChangesDelay, setCodeChangesDelay] = useState(INITIAL_CODE_CHANGES_DELAY);
+  const [isClientReady, setClientReady] = useState(false);
+  const [webPreviewURL, setWebPreviewURL] = useState('');
+
+  useEffect(() => {
+    const listeners = [
+      snack.addStateListener((state, prevState) => {
+        console.log('State changed: ', state);
+        setSnackState(state);
+        setWebPreviewURL(state.webPreviewURL);
+      }),
+      snack.addLogListener(({ message }) => console.log(message)),
+    ];
+    if (process.browser) {
+      setClientReady(true);
+    }
+    return () => listeners.forEach((listener) => listener());
+  }, [snack]);
 
   const sendMessage = () => {
     if (inputMessage.trim()) {
-      setMessages([...messages, { role: 'user', content: inputMessage }])
-      setInputMessage('')
+      setMessages([...messages, { role: 'user', content: inputMessage }]);
+      setInputMessage('');
       // Here you would typically send the message to your AI service and handle the response
     }
-  }
+  };
+
+  const handleEditorChange = (value) => {
+    setCode(value);
+    snack.updateFiles({
+      'App.js': {
+        type: 'CODE',
+        contents: value,
+      },
+    });
+  };
+
+  const goOnline = () => {
+    snack.setOnline(true);
+  };
+
+  const goOffline = () => {
+    snack.setOnline(false);
+  };
 
   return (
-    <div className="flex h-screen bg-background text-foreground">
+    <div className="flex h-screen bg-gray-900 text-gray-100">
       {/* Left Panel - Chat Interface */}
-      <div className="w-1/4 border-r border-border flex flex-col">
-        <div className="p-4 border-b border-border">
+      <div className="w-1/4 border-r border-gray-700 flex flex-col">
+        <div className="p-4 border-b border-gray-700">
           <h2 className="text-lg font-semibold">Chat</h2>
         </div>
         <ScrollArea className="flex-grow">
           {messages.map((message, index) => (
-            <div key={index} className={`p-4 ${message.role === 'user' ? 'bg-muted' : ''}`}>
+            <div key={index} className={`p-4 ${message.role === 'user' ? 'bg-gray-800' : ''}`}>
               <p className="font-semibold">{message.role === 'user' ? 'You' : 'AI'}</p>
               <p>{message.content}</p>
             </div>
           ))}
         </ScrollArea>
-        <div className="p-4 border-t border-border">
+        <div className="p-4 border-t border-gray-700">
           <div className="flex space-x-2">
             <Input
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
               placeholder="Type your message..."
               onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+              className="bg-gray-800 text-gray-100"
             />
-            <Button onClick={sendMessage}>
+            <Button onClick={sendMessage} className="bg-blue-600 hover:bg-blue-700">
               <Send className="h-4 w-4" />
             </Button>
           </div>
         </div>
       </div>
 
-      {/* Middle Panel - File List and Code Editor */}
       <div className="flex-grow flex">
-        <div className="w-1/4 border-r border-border">
-          <div className="p-4 border-b border-border">
-            <h2 className="text-lg font-semibold">Files</h2>
-          </div>
-          <ScrollArea className="h-[calc(100vh-60px)]">
-            <div className="p-2">
-              <Button variant="ghost" className="w-full justify-start">
-                <FileText className="mr-2 h-4 w-4" />
-                App.js
-              </Button>
-              <Button variant="ghost" className="w-full justify-start">
-                <FileText className="mr-2 h-4 w-4" />
-                index.js
-              </Button>
-              <Button variant="ghost" className="w-full justify-start">
-                <FileText className="mr-2 h-4 w-4" />
-                styles.css
-              </Button>
-            </div>
-          </ScrollArea>
-        </div>
         <div className="flex-grow">
-          <Tabs defaultValue="editor" className="h-full flex flex-col">
-            <div className="border-b border-border">
-              <TabsList>
-                <TabsTrigger value="editor">Editor</TabsTrigger>
-                <TabsTrigger value="preview">Preview</TabsTrigger>
-              </TabsList>
-            </div>
-            <TabsContent value="editor" className="flex-grow">
-              <ScrollArea className="h-full">
-                <pre className="p-4">
-                  <code>{`import React from 'react';
-
-function App() {
-  return (
-    <div className="App">
-      <h1>Hello, World!</h1>
-    </div>
-  );
-}
-
-export default App;`}</code>
-                </pre>
-              </ScrollArea>
-            </TabsContent>
-            <TabsContent value="preview" className="flex-grow">
-              <div className="p-4">
-                <h1 className="text-2xl font-bold">Hello, World!</h1>
-              </div>
-            </TabsContent>
-          </Tabs>
+          <Editor
+            height="100%"
+            defaultLanguage="javascript"
+            value={code as string}
+            onChange={handleEditorChange}
+            theme="vs-dark"
+            options={{
+              minimap: { enabled: false },
+              fontSize: 14,
+              backgroundColor: '#1a202c',
+            }}
+          />
         </div>
       </div>
 
-      {/* Right Panel - Device/QR Code */}
-      <div className="w-1/5 border-l border-border flex flex-col">
-        <div className="p-4 border-b border-border">
+      {/* Right Panel - Device/QR Code/Simulator/Preview */}
+      <div className="w-1/4 border-l border-gray-700 flex flex-col">
+        <div className="p-4 border-b border-gray-700">
           <h2 className="text-lg font-semibold">Preview</h2>
         </div>
-        <div className="flex-grow flex flex-col items-center justify-center p-4">
-          <div className="bg-white p-4 rounded-lg shadow-lg">
-            <Smartphone className="h-32 w-32 text-primary" />
-          </div>
-          <Button variant="outline" className="mt-4">
-            <Smartphone className="mr-2 h-4 w-4" /> My Device
-          </Button>
-          <div className="mt-4 text-center">
-            <p className="text-sm text-muted-foreground">Scan QR Code</p>
-            <img src="/placeholder.svg?height=200&width=200" alt="QR Code" className="mt-2" />
-          </div>
-        </div>
+        <Tabs defaultValue="preview" className="flex-grow flex flex-col">
+          <TabsList className="bg-gray-800 justify-center">
+            <TabsTrigger value="preview" className="data-[state=active]:bg-gray-700">Preview</TabsTrigger>
+            <TabsTrigger value="mydevice" className="data-[state=active]:bg-gray-700">My Device</TabsTrigger>
+            <TabsTrigger value="simulator" className="data-[state=active]:bg-gray-700">Simulator</TabsTrigger>
+          </TabsList>
+          <TabsContent value="preview" className="flex-grow flex flex-col">
+            <div className="flex-grow flex flex-col">
+              <div className="p-4 border-b border-gray-700">
+                <h2 className="text-lg font-semibold">Preview</h2>
+              </div>
+              <div className="flex-grow flex flex-col items-center justify-center">
+                <div className="flex-grow flex flex-col items-center justify-center">
+                  <iframe
+                    className="w-full h-full"
+                    ref={(c) => (webPreviewRef.current = c?.contentWindow ?? null)}
+                    src={isClientReady ? webPreviewURL : undefined}
+                    allow="geolocation; camera; microphone"
+                  />
+                  {isClientReady && !webPreviewURL && (
+                    <div className="text-center p-4 text-gray-500">
+                      <label>Set the SDK Version to 40.0.0 or higher to use Web preview</label>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="mydevice" className="flex-grow flex flex-col items-center justify-center">
+            <Button onClick={snackState.online ? goOffline : goOnline} className="bg-blue-600 hover:bg-blue-700 mb-4">
+              {snackState.online ? 'Go Offline' : 'Go Online'}
+            </Button>
+            {snackState.online && (
+              <div className="flex flex-col items-center">
+                <QRCode value={snackState.url} className="mb-4" />
+                <a href={snackState.url} className="text-blue-400 hover:underline">{snackState.url}</a>
+              </div>
+            )}
+          </TabsContent>
+          <TabsContent value="simulator" className="flex-grow flex flex-col items-center justify-center p-4">
+            <Input
+              placeholder="Enter Device ID"
+              value={snackState.deviceId || ''}
+              onChange={(e) => snack.setDeviceId(e.target.value)}
+              className="mb-4 bg-gray-800 text-gray-100"
+            />
+            <Input
+              placeholder="Enter SDK Version"
+              value={snackState.sdkVersion}
+              onChange={(e) => snack.setSDKVersion(e.target.value as SDKVersion)}
+              className="mb-4 bg-gray-800 text-gray-100"
+            />
+            <Button onClick={() => snack.sendCodeChanges()} className="bg-blue-600 hover:bg-blue-700">
+              Send Code Changes
+            </Button>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
-  )
+  );
 }
