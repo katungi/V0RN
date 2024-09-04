@@ -6,28 +6,28 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Send } from 'lucide-react';
 import Editor from "@monaco-editor/react";
-import QRCode from 'qrcode.react';
+import {QRCodeSVG} from 'qrcode.react';
 import { Snack, SDKVersion } from 'snack-sdk';
 import createWorkerTransport from '../components/transports/createWorkerTransport';
-import defaultCode from '../components/Defaults';
+import defaultCode from '../components/Defaults'; 
 
 const INITIAL_CODE_CHANGES_DELAY = 500;
 const VERBOSE = !!process.browser;
 const USE_WORKERS = true;
 
 export default function Component() {
-  const webPreviewRef = useRef(null);
+  const webPreviewRef = useRef<Window | null>(null);
   const [messages, setMessages] = useState([
     { role: 'assistant', content: 'Hello! How can I help you today?' },
     { role: 'user', content: 'Can you explain React hooks?' },
     { role: 'assistant', content: 'React hooks are functions that allow you to use state and other React features in functional components...' },
   ]);
   const [inputMessage, setInputMessage] = useState('');
-  const [code, setCode] = useState(defaultCode.files["App.js"].contents);
+  const [code, setCode] = useState(defaultCode.files?.["App.js"]?.contents || '');
   const [snack] = useState(
     () =>
       new Snack({
-        ...defaultCode,
+        ...defaultCode, 
         disabled: !process.browser,
         codeChangesDelay: INITIAL_CODE_CHANGES_DELAY,
         verbose: VERBOSE,
@@ -46,7 +46,7 @@ export default function Component() {
       snack.addStateListener((state, prevState) => {
         console.log('State changed: ', state);
         setSnackState(state);
-        setWebPreviewURL(state.webPreviewURL);
+        setWebPreviewURL(state.webPreviewURL || '');
       }),
       snack.addLogListener(({ message }) => console.log(message)),
     ];
@@ -60,26 +60,27 @@ export default function Component() {
     if (inputMessage.trim()) {
       setMessages([...messages, { role: 'user', content: inputMessage }]);
       setInputMessage('');
-      // Here you would typically send the message to your AI service and handle the response
     }
   };
 
-  const handleEditorChange = (value) => {
-    setCode(value);
-    snack.updateFiles({
-      'App.js': {
-        type: 'CODE',
-        contents: value,
-      },
-    });
+  const handleEditorChange = (value: string | undefined) => {
+    if (value !== undefined) {
+      setCode(value);
+      snack.updateFiles({
+        'App.js': {
+          type: 'CODE',
+          contents: value,
+        },
+      });
+    }
   };
 
   const goOnline = () => {
-    snack.setOnline(true);
+    snack.setOnline(true); 
   };
 
   const goOffline = () => {
-    snack.setOnline(false);
+    snack.setOnline(false); 
   };
 
   return (
@@ -114,6 +115,24 @@ export default function Component() {
       </div>
 
       <div className="flex-grow flex">
+        <div className="w-1/4 border-r border-gray-700">
+          <div className="p-4 border-b border-gray-700">
+            <h2 className="text-lg font-semibold">Files</h2>
+          </div>
+          <ScrollArea className="h-[calc(100vh-60px)]">
+            <div className="p-2">
+              <Button variant="ghost" className="w-full justify-start text-gray-300 hover:text-gray-100 hover:bg-gray-800">
+                App.js
+              </Button>
+              <Button variant="ghost" className="w-full justify-start text-gray-300 hover:text-gray-100 hover:bg-gray-800">
+                index.js
+              </Button>
+              <Button variant="ghost" className="w-full justify-start text-gray-300 hover:text-gray-100 hover:bg-gray-800">
+                styles.css
+              </Button>
+            </div>
+          </ScrollArea>
+        </div>
         <div className="flex-grow">
           <Editor
             height="100%"
@@ -124,7 +143,7 @@ export default function Component() {
             options={{
               minimap: { enabled: false },
               fontSize: 14,
-              backgroundColor: '#1a202c',
+              theme: 'vs-dark',
             }}
           />
         </div>
@@ -150,7 +169,11 @@ export default function Component() {
                 <div className="flex-grow flex flex-col items-center justify-center">
                   <iframe
                     className="w-full h-full"
-                    ref={(c) => (webPreviewRef.current = c?.contentWindow ?? null)}
+                    ref={(c) => {
+                      if (c) {
+                        webPreviewRef.current = c.contentWindow;
+                      }
+                    }}
                     src={isClientReady ? webPreviewURL : undefined}
                     allow="geolocation; camera; microphone"
                   />
@@ -168,9 +191,9 @@ export default function Component() {
             <Button onClick={snackState.online ? goOffline : goOnline} className="bg-blue-600 hover:bg-blue-700 mb-4">
               {snackState.online ? 'Go Offline' : 'Go Online'}
             </Button>
-            {snackState.online && (
+            {snackState.online && snackState.url && (
               <div className="flex flex-col items-center">
-                <QRCode value={snackState.url} className="mb-4" />
+                <QRCodeSVG value={snackState.url} className="mb-4" />
                 <a href={snackState.url} className="text-blue-400 hover:underline">{snackState.url}</a>
               </div>
             )}
