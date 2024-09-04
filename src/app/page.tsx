@@ -10,24 +10,23 @@ import { QRCodeSVG } from 'qrcode.react';
 import { Snack, SDKVersion } from 'snack-sdk';
 import createWorkerTransport from '../components/transports/createWorkerTransport';
 import defaultCode from '../components/Defaults';
-import { CopilotTextarea } from "@copilotkit/react-textarea";
-import { useCopilotChat } from "@copilotkit/react-core";
-import { Role, TextMessage } from "@copilotkit/runtime-client-gql";
-import "@copilotkit/react-ui/styles.css";
-
+import { createOpenAI } from '@ai-sdk/openai';
+import { generateText } from 'ai';
 
 const INITIAL_CODE_CHANGES_DELAY = 500;
 const VERBOSE = !!process.browser;
 const USE_WORKERS = true;
 
+console.log("KEY", process.env.GROQ_API_KEY);
+const groq = createOpenAI({
+  baseURL: 'https://api.groq.com/openai/v1',
+  apiKey: process.env.NEXT_PUBLIC_GROQ_API_KEY
+});
+const model = groq('llama3-8b-8192');
 
 export default function Component() {
   const webPreviewRef = useRef<Window | null>(null);
-  const [messages, setMessages] = useState([
-    { role: 'assistant', content: 'Hello! How can I help you today?' },
-    { role: 'user', content: 'Can you explain React hooks?' },
-    { role: 'assistant', content: 'React hooks are functions that allow you to use state and other React features in functional components...' },
-  ]);
+  const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
   const [code, setCode] = useState(defaultCode.files?.["App.js"]?.contents || '');
   const [currentFile, setCurrentFile] = useState("App.js");
@@ -49,35 +48,85 @@ export default function Component() {
   const [webPreviewURL, setWebPreviewURL] = useState('');
   const [expandedFolders, setExpandedFolders] = useState<string[]>([]);
 
-  const { appendMessage: copilotSendMessage, isLoading,visibleMessages  } = useCopilotChat();
-
-  console.log("visible",visibleMessages)
 
   useEffect(() => {
     const listeners = [
       snack.addStateListener((state, prevState) => {
-        console.log('State changed: ', state);
         setSnackState(state);
         setWebPreviewURL(state.webPreviewURL || '');
       }),
+
       snack.addLogListener(({ message }) => console.log(message)),
     ];
+    snack.updateDependencies(
+      {
+        '@expo/vector-icons': '~14.0.2'
+      }
+    )
     if (process.browser) {
       setClientReady(true);
     }
     return () => listeners.forEach((listener) => listener());
   }, [snack]);
+  function extractCode(response) {
+    const codeRegex = /```(?:jsx?|javascript)?\s*([\s\S]*?)\s*```/;
+    const match = response.match(codeRegex);
+
+    if (match && match[1]) {
+      return match[1].trim();
+    }
+
+    return response;
+  }
 
   const sendMessage = async () => {
     if (inputMessage.trim()) {
       setMessages(prevMessages => [...prevMessages, { role: 'user', content: inputMessage }]);
-      const response = await copilotSendMessage(new TextMessage({
-        content: inputMessage,
-        role: Role.User,
-      }));
-      if (response && typeof response.content === 'string') {
-        setMessages(prevMessages => [...prevMessages, { role: 'assistant', content: response.content }]);
+      const defaultPrompt = `
+      Please generate a React Native UI component based on this request: ${inputMessage}.
+
+      Create a single, self-contained component file with minimal necessary imports.
+      Focus solely on UI elements and styling, without any data fetching or complex logic.
+      Use JavaScript instead of TypeScript.
+      Implement a visually appealing interface adhering to current design trends:
+
+      Use a cohesive color scheme.
+      Incorporate ample white space for a clean, uncluttered look.
+      Implement consistent spacing and alignment.
+      Use basic React Native components (View, Text, TouchableOpacity, etc.).
+      Implement a responsive layout using flexbox.
+      Use React Native's StyleSheet API for style definitions.
+      Include placeholder text or mock data directly in the component where needed.
+      Omit any data fetching, state management, or complex hooks (except useState if absolutely necessary for UI interactions).
+      Keep the component structure simple and focused on visual representation.
+      Always add icons from Expo vector Icons where necessary, and give them nice colors as well. Focus on correctness of the code as well. 
+      The output should be a self-contained, ready-to-run UI component with no external dependencies beyond basic React Native. Include only the code, without any explanations or comments.
+`
+      try {
+        const { text } = await generateText({
+          model,
+          prompt: defaultPrompt,
+        });
+
+        setMessages(prevMessages => [...prevMessages, { role: 'assistant', content: text }]);
+        // Update the Snack with the new code
+        snack.updateFiles({
+          'App.js': {
+            type: 'CODE',
+            contents: extractCode(text),
+          },
+        });
+
+        // Update the code state
+        setCode(text);
+
+        // Set the current file to App.js
+        setCurrentFile('App.js');
+      } catch (error) {
+        console.error("Error generating text:", error);
+        setMessages(prevMessages => [...prevMessages, { role: 'assistant', content: 'Sorry, I encountered an error.' }]);
       }
+
       setInputMessage('');
     }
   };
@@ -180,26 +229,20 @@ export default function Component() {
           <h2 className="text-lg font-semibold">Chat</h2>
         </div>
         <ScrollArea className="flex-grow">
-          {messages.map((message, index) => (
+          {messages?.map((message, index) => (
             <div key={index} className={`p-4 ${message.role === 'user' ? 'bg-gray-800' : ''}`}>
               <p className="font-semibold">{message.role === 'user' ? 'You' : 'AI'}</p>
               <p>{message.content}</p>
             </div>
           ))}
-          {isLoading && (
-            <div className="p-4">
-              <p className="font-semibold">AI</p>
-              <p>Thinking...</p>
-            </div>
-          )}
         </ScrollArea>
         <div className="p-4 border-t border-gray-700">
           <div className="flex space-x-2">
-            <CopilotTextarea
+            <textarea
               value={inputMessage}
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setInputMessage(e.target.value)}
+              onChange={(e) => setInputMessage(e.target.value)}
               placeholder="Type your message..."
-              onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+              onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
                   sendMessage();
@@ -235,12 +278,11 @@ export default function Component() {
             options={{
               minimap: { enabled: false },
               fontSize: 14,
-              theme: 'vs-dark',
+              theme: "vs-dark",
             }}
           />
         </div>
       </div>
-
       {/* Right Panel - Device/QR Code/Simulator/Preview */}
       <div className="w-1/4 border-l border-gray-700 flex flex-col">
         <div className="p-4 border-b border-gray-700">
