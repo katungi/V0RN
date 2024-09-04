@@ -161,39 +161,34 @@ export default function Component() {
             <TabsTrigger value="simulator" className="data-[state=active]:bg-gray-700">Simulator</TabsTrigger>
           </TabsList>
           <TabsContent value="preview" className="flex-grow flex flex-col">
-            <div className="flex-grow flex flex-col">
-              <div className="p-4 border-b border-gray-700">
-                <h2 className="text-lg font-semibold">Preview</h2>
+            <div className="flex-grow flex flex-col items-center justify-center p-4">
+              <div className="w-[375px] h-[667px] bg-white rounded-3xl overflow-hidden shadow-lg">
+                <iframe
+                  className="w-full h-full"
+                  ref={(c) => {
+                    if (c) {
+                      webPreviewRef.current = c.contentWindow;
+                    }
+                  }}
+                  src={isClientReady ? webPreviewURL : undefined}
+                  allow="geolocation; camera; microphone"
+                />
               </div>
-              <div className="flex-grow flex flex-col items-center justify-center">
-                <div className="flex-grow flex flex-col items-center justify-center">
-                  <iframe
-                    className="w-full h-full"
-                    ref={(c) => {
-                      if (c) {
-                        webPreviewRef.current = c.contentWindow;
-                      }
-                    }}
-                    src={isClientReady ? webPreviewURL : undefined}
-                    allow="geolocation; camera; microphone"
-                  />
-                  {isClientReady && !webPreviewURL && (
-                    <div className="text-center p-4 text-gray-500">
-                      <label>Set the SDK Version to 40.0.0 or higher to use Web preview</label>
-                    </div>
-                  )}
+              {isClientReady && !webPreviewURL && (
+                <div className="text-center p-4 text-gray-500">
+                  <label>Set the SDK Version to 40.0.0 or higher to use Web preview</label>
                 </div>
-              </div>
+              )}
             </div>
           </TabsContent>
 
-          <TabsContent value="mydevice" className="flex-grow flex flex-col items-center justify-center">
+          <TabsContent value="mydevice" className="flex-grow flex flex-col items-center justify-center p-4">
             <Button onClick={snackState.online ? goOffline : goOnline} className="bg-blue-600 hover:bg-blue-700 mb-4">
               {snackState.online ? 'Go Offline' : 'Go Online'}
             </Button>
             {snackState.online && snackState.url && (
               <div className="flex flex-col items-center">
-                <QRCodeSVG value={snackState.url} className="mb-4" />
+                <QRCodeSVG value={snackState.url} size={300} className="mb-4" />
                 <a href={snackState.url} className="text-blue-400 hover:underline">{snackState.url}</a>
               </div>
             )}
