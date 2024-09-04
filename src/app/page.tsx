@@ -10,8 +10,9 @@ import { QRCodeSVG } from 'qrcode.react';
 import { Snack, SDKVersion } from 'snack-sdk';
 import createWorkerTransport from '../components/transports/createWorkerTransport';
 import defaultCode from '../components/Defaults';
-import { CopilotKit } from "@copilotkit/react-core";
-import { CopilotTextarea, CopilotSidebarButton } from "@copilotkit/react-ui";
+import { CopilotTextarea } from "@copilotkit/react-textarea";
+import { useCopilotChat } from "@copilotkit/react-core";
+import { Role, TextMessage } from "@copilotkit/runtime-client-gql";
 import "@copilotkit/react-ui/styles.css";
 
 
@@ -48,6 +49,10 @@ export default function Component() {
   const [webPreviewURL, setWebPreviewURL] = useState('');
   const [expandedFolders, setExpandedFolders] = useState<string[]>([]);
 
+  const { appendMessage: copilotSendMessage, isLoading,visibleMessages  } = useCopilotChat();
+
+  console.log("visible",visibleMessages)
+
   useEffect(() => {
     const listeners = [
       snack.addStateListener((state, prevState) => {
@@ -63,14 +68,19 @@ export default function Component() {
     return () => listeners.forEach((listener) => listener());
   }, [snack]);
 
-  const sendMessage = () => {
+  const sendMessage = async () => {
     if (inputMessage.trim()) {
-      setMessages([...messages, { role: 'user', content: inputMessage }]);
+      setMessages(prevMessages => [...prevMessages, { role: 'user', content: inputMessage }]);
+      const response = await copilotSendMessage(new TextMessage({
+        content: inputMessage,
+        role: Role.User,
+      }));
+      if (response && typeof response.content === 'string') {
+        setMessages(prevMessages => [...prevMessages, { role: 'assistant', content: response.content }]);
+      }
       setInputMessage('');
     }
   };
-
-  console.log("snackState.files", snackState.files)
 
   const handleEditorChange = (value: string | undefined) => {
     if (value !== undefined) {
@@ -163,129 +173,137 @@ export default function Component() {
   };
 
   return (
-    <CopilotKit chatApiEndpoint="/api/chat">
-      <div className="flex h-screen bg-gray-900 text-gray-100">
-        {/* Left Panel - Chat Interface */}
-        <div className="w-1/4 border-r border-gray-700 flex flex-col">
-          <div className="p-4 border-b border-gray-700">
-            <h2 className="text-lg font-semibold">Chat</h2>
-          </div>
-          <ScrollArea className="flex-grow">
-            {messages.map((message, index) => (
-              <div key={index} className={`p-4 ${message.role === 'user' ? 'bg-gray-800' : ''}`}>
-                <p className="font-semibold">{message.role === 'user' ? 'You' : 'AI'}</p>
-                <p>{message.content}</p>
-              </div>
-            ))}
-          </ScrollArea>
-          <div className="p-4 border-t border-gray-700">
-            <div className="flex space-x-2">
-              <CopilotTextarea
-                value={inputMessage}
-                onChange={(e) => setInputMessage(e.target.value)}
-                placeholder="Type your message..."
-                onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                className="bg-gray-800 text-gray-100 w-full"
-              />
-              <Button onClick={sendMessage} className="bg-blue-600 hover:bg-blue-700">
-                <Send className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-          <CopilotSidebarButton />
+    <div className="flex h-screen bg-gray-900 text-gray-100">
+      {/* Left Panel - Chat Interface */}
+      <div className="w-1/4 border-r border-gray-700 flex flex-col">
+        <div className="p-4 border-b border-gray-700">
+          <h2 className="text-lg font-semibold">Chat</h2>
         </div>
-
-        <div className="flex-grow flex">
-          <div className="w-1/4 border-r border-gray-700">
-            <div className="p-4 border-b border-gray-700">
-              <h2 className="text-lg font-semibold">Files</h2>
+        <ScrollArea className="flex-grow">
+          {messages.map((message, index) => (
+            <div key={index} className={`p-4 ${message.role === 'user' ? 'bg-gray-800' : ''}`}>
+              <p className="font-semibold">{message.role === 'user' ? 'You' : 'AI'}</p>
+              <p>{message.content}</p>
             </div>
-            <ScrollArea className="h-[calc(100vh-60px)]">
-              <div className="p-2">
-                {renderFileTree(snackState.files)}
-              </div>
-            </ScrollArea>
-          </div>
-          <div className="flex-grow">
-            <Editor
-              height="100%"
-              defaultLanguage="javascript"
-              value={code as string}
-              onChange={handleEditorChange}
-              theme="vs-dark"
-              options={{
-                minimap: { enabled: false },
-                fontSize: 14,
-                theme: 'vs-dark',
+          ))}
+          {isLoading && (
+            <div className="p-4">
+              <p className="font-semibold">AI</p>
+              <p>Thinking...</p>
+            </div>
+          )}
+        </ScrollArea>
+        <div className="p-4 border-t border-gray-700">
+          <div className="flex space-x-2">
+            <CopilotTextarea
+              value={inputMessage}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setInputMessage(e.target.value)}
+              placeholder="Type your message..."
+              onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  sendMessage();
+                }
               }}
+              className="bg-gray-800 text-gray-100 w-full"
             />
+            <Button onClick={sendMessage} className="bg-blue-600 hover:bg-blue-700">
+              <Send className="h-4 w-4" />
+            </Button>
           </div>
-        </div>
-
-        {/* Right Panel - Device/QR Code/Simulator/Preview */}
-        <div className="w-1/4 border-l border-gray-700 flex flex-col">
-          <div className="p-4 border-b border-gray-700">
-            <h2 className="text-lg font-semibold">Preview</h2>
-          </div>
-          <Tabs defaultValue="preview" className="flex-grow flex flex-col">
-            <TabsList className="bg-gray-800 justify-center">
-              <TabsTrigger value="preview" className="data-[state=active]:bg-gray-700">Preview</TabsTrigger>
-              <TabsTrigger value="mydevice" className="data-[state=active]:bg-gray-700">My Device</TabsTrigger>
-              <TabsTrigger value="simulator" className="data-[state=active]:bg-gray-700">Simulator</TabsTrigger>
-            </TabsList>
-            <TabsContent value="preview" className="flex-grow flex flex-col">
-              <div className="flex-grow flex flex-col items-center justify-center p-4">
-                <div className="w-[375px] h-[667px] bg-white rounded-3xl overflow-hidden shadow-lg">
-                  <iframe
-                    className="w-full h-full"
-                    ref={(c) => {
-                      if (c) {
-                        webPreviewRef.current = c.contentWindow;
-                      }
-                    }}
-                    src={isClientReady ? webPreviewURL : undefined}
-                    allow="geolocation; camera; microphone"
-                  />
-                </div>
-                {isClientReady && !webPreviewURL && (
-                  <div className="text-center p-4 text-gray-500">
-                    <label>Set the SDK Version to 40.0.0 or higher to use Web preview</label>
-                  </div>
-                )}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="mydevice" className="flex-grow flex flex-col items-center justify-center p-4">
-              <Button onClick={snackState.online ? goOffline : goOnline} className="bg-blue-600 hover:bg-blue-700 mb-4">
-                {snackState.online ? 'Go Offline' : 'Go Online'}
-              </Button>
-              {snackState.online && snackState.url && (
-                <div className="flex flex-col items-center">
-                  <QRCodeSVG value={snackState.url} size={300} className="mb-4" />
-                  <a href={snackState.url} className="text-blue-400 hover:underline">{snackState.url}</a>
-                </div>
-              )}
-            </TabsContent>
-            <TabsContent value="simulator" className="flex-grow flex flex-col items-center justify-center p-4">
-              <Input
-                placeholder="Enter Device ID"
-                value={snackState.deviceId || ''}
-                onChange={(e) => snack.setDeviceId(e.target.value)}
-                className="mb-4 bg-gray-800 text-gray-100"
-              />
-              <Input
-                placeholder="Enter SDK Version"
-                value={snackState.sdkVersion}
-                onChange={(e) => snack.setSDKVersion(e.target.value as SDKVersion)}
-                className="mb-4 bg-gray-800 text-gray-100"
-              />
-              <Button onClick={() => snack.sendCodeChanges()} className="bg-blue-600 hover:bg-blue-700">
-                Send Code Changes
-              </Button>
-            </TabsContent>
-          </Tabs>
         </div>
       </div>
-    </CopilotKit>
+
+      <div className="flex-grow flex">
+        <div className="w-1/4 border-r border-gray-700">
+          <div className="p-4 border-b border-gray-700">
+            <h2 className="text-lg font-semibold">Files</h2>
+          </div>
+          <ScrollArea className="h-[calc(100vh-60px)]">
+            <div className="p-2">
+              {renderFileTree(snackState.files)}
+            </div>
+          </ScrollArea>
+        </div>
+        <div className="flex-grow">
+          <Editor
+            height="100%"
+            defaultLanguage="javascript"
+            value={code as string}
+            onChange={handleEditorChange}
+            theme="vs-dark"
+            options={{
+              minimap: { enabled: false },
+              fontSize: 14,
+              theme: 'vs-dark',
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Right Panel - Device/QR Code/Simulator/Preview */}
+      <div className="w-1/4 border-l border-gray-700 flex flex-col">
+        <div className="p-4 border-b border-gray-700">
+          <h2 className="text-lg font-semibold">Preview</h2>
+        </div>
+        <Tabs defaultValue="preview" className="flex-grow flex flex-col">
+          <TabsList className="bg-gray-800 justify-center">
+            <TabsTrigger value="preview" className="data-[state=active]:bg-gray-700">Preview</TabsTrigger>
+            <TabsTrigger value="mydevice" className="data-[state=active]:bg-gray-700">My Device</TabsTrigger>
+            <TabsTrigger value="simulator" className="data-[state=active]:bg-gray-700">Simulator</TabsTrigger>
+          </TabsList>
+          <TabsContent value="preview" className="flex-grow flex flex-col">
+            <div className="flex-grow flex flex-col items-center justify-center p-4">
+              <div className="w-[375px] h-[667px] bg-white rounded-3xl overflow-hidden shadow-lg">
+                <iframe
+                  className="w-full h-full"
+                  ref={(c) => {
+                    if (c) {
+                      webPreviewRef.current = c.contentWindow;
+                    }
+                  }}
+                  src={isClientReady ? webPreviewURL : undefined}
+                  allow="geolocation; camera; microphone"
+                />
+              </div>
+              {isClientReady && !webPreviewURL && (
+                <div className="text-center p-4 text-gray-500">
+                  <label>Set the SDK Version to 40.0.0 or higher to use Web preview</label>
+                </div>
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="mydevice" className="flex-grow flex flex-col items-center justify-center p-4">
+            <Button onClick={snackState.online ? goOffline : goOnline} className="bg-blue-600 hover:bg-blue-700 mb-4">
+              {snackState.online ? 'Go Offline' : 'Go Online'}
+            </Button>
+            {snackState.online && snackState.url && (
+              <div className="flex flex-col items-center">
+                <QRCodeSVG value={snackState.url} size={300} className="mb-4" />
+                <a href={snackState.url} className="text-blue-400 hover:underline">{snackState.url}</a>
+              </div>
+            )}
+          </TabsContent>
+          <TabsContent value="simulator" className="flex-grow flex flex-col items-center justify-center p-4">
+            <Input
+              placeholder="Enter Device ID"
+              value={snackState.deviceId || ''}
+              onChange={(e) => snack.setDeviceId(e.target.value)}
+              className="mb-4 bg-gray-800 text-gray-100"
+            />
+            <Input
+              placeholder="Enter SDK Version"
+              value={snackState.sdkVersion}
+              onChange={(e) => snack.setSDKVersion(e.target.value as SDKVersion)}
+              className="mb-4 bg-gray-800 text-gray-100"
+            />
+            <Button onClick={() => snack.sendCodeChanges()} className="bg-blue-600 hover:bg-blue-700">
+              Send Code Changes
+            </Button>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </div>
   );
 }
