@@ -15,12 +15,12 @@ const transportCallback = (event: SnackTransportEvent) => postMessage(event);
 onmessage = (event) => {
   if (event.data.type === 'init') {
     transport = createTransport(event.data.data);
-    transport.addEventListener('message', transportCallback);
+    transport?.addEventListener('message', transportCallback);
   } else if (transport) {
     const message: SnackTransportMessage = event.data as any;
-    transport.postMessage(message);
+    transport?.postMessage(message);
     if (message.type === 'stop') {
-      transport.removeEventListener('message', transportCallback);
+      transport?.removeEventListener('message', transportCallback);
       transport = undefined;
       close();
     }
