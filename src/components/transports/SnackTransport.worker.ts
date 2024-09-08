@@ -1,11 +1,10 @@
 import type { SnackTransport, SnackTransportMessage, SnackTransportEvent } from 'snack-sdk';
 
 // Web-worker postMessage has a different signature
-//@ts-ignore
-declare function postMessage(message: any, transfer?: any);
+declare function postMessage(message: any, transfer?: any): void;
 
-// @ts-ignore
-self.window = self; // Needed for pubnub to work
+// Needed for pubnub to work
+self.window = self;
 
 const { createTransport } = require('snack-sdk');
 

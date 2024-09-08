@@ -1,10 +1,9 @@
 "use client"
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Send, ChevronRight, ChevronDown, File, Save, Lock } from 'lucide-react';
+import { Send, ChevronRight, ChevronDown, File, Save, Lock, Loader } from 'lucide-react';
 import Editor from "@monaco-editor/react";
 import { QRCodeSVG } from 'qrcode.react';
 import { Snack, SnackState } from 'snack-sdk';
@@ -12,6 +11,7 @@ import createWorkerTransport from '../components/transports/createWorkerTranspor
 import defaultCode from '../components/Defaults';
 import { createOpenAI } from '@ai-sdk/openai';
 import { generateText } from 'ai';
+import { Textarea } from '@/components/ui/textarea';
 
 const INITIAL_CODE_CHANGES_DELAY = 500;
 const VERBOSE = !!process.browser;
@@ -19,23 +19,22 @@ const USE_WORKERS = true;
 const TYPING_SPEED = 0.1;
 
 export default function Dashboard() {
-  const webPreviewRef = useRef<HTMLIFrameElement | null>(null);
-  const editorRef = useRef<any>(null);
-  const [messages, setMessages] = useState<{ role: string, content: string }[]>([
-    { role: 'assistant', content: 'Hello! How can I help you today?' },
-    { role: 'user', content: 'Can you help me with React hooks?' },
-    { role: 'assistant', content: 'React hooks are functions that allow you to use state and other React features in functional components. What specific aspect of hooks would you like to know about?' }
-  ]);
-  const [inputMessage, setInputMessage] = useState<string>('');
-  const [code, setCode] = useState<string>(defaultCode.files?.["App.js"]?.contents as string || '');
-  const [currentFile, setCurrentFile] = useState<string>("App.js");
+  const webPreviewRef = useRef(null);
+  const editorRef = useRef(null);
+  const [messages, setMessages] = useState<{ role: string, content: string }[]>([{
+    role: 'v0rn',
+    content: 'Hello! what are we building today?'
+  }]);
+  const [inputMessage, setInputMessage] = useState('');
+  const [code, setCode] = useState(defaultCode.files?.["App.js"]?.contents || '');
+  const [currentFile, setCurrentFile] = useState("App.js");
   const [snack, setSnack] = useState<Snack | null>(null);
   const [snackState, setSnackState] = useState<SnackState | null>(null);
-  const [isClientReady, setClientReady] = useState<boolean>(false);
-  const [webPreviewURL, setWebPreviewURL] = useState<string>('');
+  const [isClientReady, setClientReady] = useState(false);
+  const [webPreviewURL, setWebPreviewURL] = useState('');
   const [expandedFolders, setExpandedFolders] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [isStreaming, setIsStreaming] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false);
 
   const groq = createOpenAI({
     baseURL: 'https://api.groq.com/openai/v1',
@@ -51,7 +50,7 @@ export default function Dashboard() {
         disabled: false,
         codeChangesDelay: INITIAL_CODE_CHANGES_DELAY,
         verbose: VERBOSE,
-        webPreviewRef: webPreviewRef as any,
+        webPreviewRef: webPreviewRef,
         ...(USE_WORKERS ? { createTransport: createWorkerTransport } : {}),
       });
 
@@ -69,9 +68,7 @@ export default function Dashboard() {
 
       newSnack.updateDependencies({
         //@ts-ignore
-        '@expo/vector-icons': '~14.0.2',
-        //@ts-ignore
-        'react-native-chart-kit': '~1.2.1'
+        '@expo/vector-icons': '~14.0.2'
       });
 
       return () => listeners.forEach((listener) => listener());
@@ -89,6 +86,29 @@ export default function Dashboard() {
     return response;
   }
 
+  const simulateStreaming = async (newCode: string) => {
+    setIsStreaming(true);
+    let currentCode = '';
+    for (let i = 0; i < newCode.length; i++) {
+      currentCode += newCode[i];
+      setCode(currentCode);
+      if (snack) {
+        snack.updateFiles({
+          'App.js': {
+            type: 'CODE',
+            contents: currentCode,
+          },
+        });
+      }
+      if (editorRef.current) {
+        //@ts-ignore
+        editorRef.current.setValue(currentCode);
+      }
+      await new Promise(resolve => setTimeout(resolve, TYPING_SPEED));
+    }
+    setIsStreaming(false);
+  };
+
   const sendMessage = async () => {
     if (inputMessage.trim() && snack) {
       setMessages(prevMessages => [...prevMessages, { role: 'user', content: inputMessage }]);
@@ -97,12 +117,12 @@ export default function Dashboard() {
       const defaultPrompt = `
       Current code:
       ${code}
-
+      
       Conversation history:
       ${conversationHistory}
-
+      
       User request: ${inputMessage}
-
+      
       Please generate an updated React Native UI component based on this request and the current code.
       Focus on UI elements and styling, without complex logic.
       Use JavaScript, not TypeScript.
@@ -113,12 +133,15 @@ export default function Dashboard() {
       - Use basic React Native components (View, Text, TouchableOpacity, etc.).
       - Implement a responsive layout using flexbox.
       - Use React Native's StyleSheet API for style definitions.
+      - Use Ionicons from 'expo-vector-icons' for icons with visually appealing colors.
       - Include placeholder text or mock data directly in the component where needed.
-      - Add icons from Expo vector Icons where necessary, with nice colors.
       - Focus on code correctness.
-
+      - This is the main component of the app, so make sure it looks good.
+      - Any time you need to use an avatar, use this url https://i.pravatar.cc/300 where to the end of the url is the size.
+      
       The output should be a self-contained, ready-to-run UI component with no external dependencies beyond basic React Native. Include only the code, without explanations or comments.
-      `
+      `;
+          
       try {
         const { text } = await generateText({
           model,
@@ -141,30 +164,8 @@ export default function Dashboard() {
     }
   };
 
-  const simulateStreaming = async (newCode: string) => {
-    setIsStreaming(true);
-    let currentCode = '';
-    for (let i = 0; i < newCode.length; i++) {
-      currentCode += newCode[i];
-      setCode(currentCode);
-      if (snack) {
-        snack.updateFiles({
-          'App.js': {
-            type: 'CODE',
-            contents: currentCode,
-          },
-        });
-      }
-      if (editorRef.current) {
-        editorRef.current.setValue(currentCode);
-      }
-      await new Promise(resolve => setTimeout(resolve, TYPING_SPEED));
-    }
-    setIsStreaming(false);
-  };
-
-  const handleEditorChange = (value: string | undefined) => {
-    if (typeof value === 'string' && !isStreaming) {
+  const handleEditorChange = (value: string | Blob | FormData) => {
+    if (value !== undefined && !isStreaming) {
       setCode(value);
     }
   };
@@ -284,7 +285,7 @@ export default function Dashboard() {
           <ScrollArea className="flex-grow">
             {messages.map((message, index) => (
               <div key={index} className={`p-2 m-2 text-sm ${message.role === 'user' ? 'ml-4' : 'mr-4'}`}>
-                <p className="font-semibold text-xs">{message.role === 'user' ? 'You' : 'AI'}</p>
+                <p className="font-bold text-xs">{message.role === 'user' ? 'You' : 'v0rn'}</p>
                 <p className="whitespace-pre-wrap">{message.content}</p>
               </div>
             ))}
@@ -298,15 +299,17 @@ export default function Dashboard() {
           </ScrollArea>
           <div className="p-4 border-t">
             <div className="flex space-x-2">
-              <Input
+              <Textarea
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
                 placeholder="Type your message..."
                 onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
                 className="text-sm"
               />
-              <Button onClick={sendMessage}>
-                <Send className="h-4 w-4" />
+              <Button onClick={sendMessage}
+                disabled={isStreaming}
+              >
+                {isStreaming ? <Loader className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               </Button>
             </div>
           </div>
@@ -347,40 +350,37 @@ export default function Dashboard() {
         </div>
 
         {/* Right Panel - Preview */}
-        <div className="w-1/4 border-l flex flex-col">
-          <Tabs defaultValue="preview" className="flex-grow flex flex-col" onValueChange={(value) => {
-            if (value === 'mydevice') {
-              goOnline();
-            }
-          }}>
+        <div className="w-1/4 border-l flex flex-col h-full">
+          <Tabs
+            defaultValue="preview"
+            className="h-full"
+            onValueChange={(value) => {
+              if (value === 'mydevice') {
+                goOnline();
+              }
+            }}
+          >
             <TabsList className="justify-center border-b">
               <TabsTrigger value="preview">Preview</TabsTrigger>
               <TabsTrigger value="mydevice">My Device</TabsTrigger>
             </TabsList>
-            <TabsContent value="preview" className="flex-grow flex flex-col items-center justify-center p-4">
+            <TabsContent value="preview" className="flex-grow flex items-center justify-center p-4">
               <div className="w-[375px] h-[667px] bg-white border-8 border-gray-300 rounded-3xl overflow-hidden shadow-lg">
-                {isClientReady && webPreviewURL ? (
-                  <iframe
-                    // @ts-ignore
-                    ref={(c) => (webPreviewRef.current = c?.contentWindow ?? null)}
-                    src={webPreviewURL}
-                    className="w-full h-full"
-                    allow="geolocation; camera; microphone"
-                  />
-                ) : (
-                  <div className="flex items-center justify-center h-full text-gray-400">
-                    Preview not available
-                  </div>
-                )}
+                <iframe
+                  ref={(c) => (webPreviewRef.current = c?.contentWindow ?? null)}
+                  src={snackState?.webPreviewURL}
+                  className="w-full h-full"
+                  allow="geolocation; camera; microphone"
+                />
               </div>
             </TabsContent>
-            <TabsContent value="mydevice" className="flex-grow flex flex-col items-center justify-center p-4">
+            <TabsContent value="mydevice" className="flex items-center justify-center p-4">
               {snackState?.online && snackState?.url && (
-                <>
-                  <QRCodeSVG value={snackState.url} size={200} />
+                <div className="p-4">
+                  <QRCodeSVG value={snackState.url} size={300} className='ml-13' />
                   <p className="mt-4 text-sm text-gray-600">Scan with your device to open the app</p>
-                  <a href={snackState.url} className="mt-2 text-sm text-blue-500 hover:underline">{snackState.url}</a>
-                </>
+                  <a href={snackState.url} className="mt-2 text-sm text-blue-500 hover:underline break-all">{snackState.url}</a>
+                </div>
               )}
             </TabsContent>
           </Tabs>

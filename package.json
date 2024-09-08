@@ -28,7 +28,7 @@
     "qrcode.react": "^4.0.1",
     "react": "^18",
     "react-dom": "^18",
-    "snack-sdk": "^6.1.0",
+    "snack-sdk": "^6.1.2",
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7"
   },
