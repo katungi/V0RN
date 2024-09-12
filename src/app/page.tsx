@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect } from "react"
+import React, { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog"
@@ -9,6 +9,7 @@ import { PlusIcon, ClockIcon, RefreshCwIcon, ArrowUpIcon, MinimizeIcon, Paintbru
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { HexColorPicker } from "react-colorful"
+import DotPattern from "@/components/magicui/dot-pattern"
 
 const stylePreferences = [
   { name: "Minimalist", icon: MinimizeIcon, color: "bg-gray-100" },
@@ -69,9 +70,14 @@ export default function Component() {
   }
 
   return (
-    <div className="flex h-screen bg-white">
+    <div className="flex h-screen bg-white relative">
+      {/* Dot Pattern Background */}
+      <div className="absolute inset-0 overflow-hidden opacity-40 pointer-events-none">
+        <DotPattern width={400} height={320} />
+      </div>
+
       {/* Sidebar */}
-      <div className="w-16 bg-gray-100 flex flex-col items-center py-4 border-r">
+      <div className="w-16 bg-gray-100 flex flex-col items-center py-4 border-r relative z-10">
         <div className="mb-8">
           <div className="mt-auto">
             <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-semibold text-sm">
@@ -164,9 +170,9 @@ export default function Component() {
       </div>
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col relative z-10">
         {/* Header */}
-        <header className="flex justify-between items-center p-4 border-b">
+        <header className="flex justify-between items-center p-4 border-b bg-white">
           <div className="text-xl font-semibold">v0rn</div>
           <div className="text-sm text-gray-500">Private Beta</div>
         </header>
@@ -174,13 +180,9 @@ export default function Component() {
         {/* Content */}
         <main className="flex-1 flex flex-col items-center justify-center p-8">
           <h1 className="text-4xl font-bold mb-4">Build Mobile apps 10x Faster</h1>
-          <p className="text-gray-600 mb-8">Generate UI, ask questions, debug, execute code, and much more.</p>
+          <p className="text-gray-600 mb-8">Generate UI, preview and edit all in one place</p>
 
           <div className="w-full max-w-3xl mb-8">
-            {/* <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-gray-600">Subscribe to Premium for higher message limits.</p>
-              <Button variant="outline" size="sm">Upgrade Plan</Button>
-            </div> */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={isLoaded ? { opacity: 1, y: 0 } : {}}
@@ -210,7 +212,7 @@ export default function Component() {
         </main>
 
         {/* Footer */}
-        <footer className="flex justify-center items-center p-4 border-t text-sm text-gray-500">
+        <footer className="flex justify-center items-center p-4 border-t text-sm text-gray-500 bg-white">
           Powered by{" "}
           <Link href="https://expo.dev" className="mx-2 flex items-center">
             Expo <ArrowUpIcon className="h-4 w-4 ml-1 transform rotate-45" />
