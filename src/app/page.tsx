@@ -42,7 +42,7 @@ export default function Component() {
   ]
 
   const handleStylePreferenceToggle = (style: string) => {
-    setSelectedStyles(prev => 
+    setSelectedStyles(prev =>
       prev.includes(style) ? prev.filter(s => s !== style) : [...prev, style]
     )
   }
@@ -73,11 +73,11 @@ export default function Component() {
       {/* Sidebar */}
       <div className="w-16 bg-gray-100 flex flex-col items-center py-4 border-r">
         <div className="mb-8">
-        <div className="mt-auto">
-          <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-semibold text-sm">
-            JD
+          <div className="mt-auto">
+            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-semibold text-sm">
+              JD
+            </div>
           </div>
-        </div>
         </div>
         <Dialog>
           <DialogTrigger asChild>
@@ -90,9 +90,9 @@ export default function Component() {
             <DialogHeader>
               <DialogTitle>Create New Project</DialogTitle>
               <DialogDescription>
-                {step === 1 ? "Enter a name for your new project." : 
-                 step === 2 ? "Choose style preferences for your project." :
-                 "Optionally select color scheme for your project."}
+                {step === 1 ? "Enter a name for your new project." :
+                  step === 2 ? "Choose style preferences for your project." :
+                    "Optionally select color scheme for your project."}
               </DialogDescription>
             </DialogHeader>
             {step === 1 && (
@@ -175,7 +175,7 @@ export default function Component() {
         <main className="flex-1 flex flex-col items-center justify-center p-8">
           <h1 className="text-4xl font-bold mb-4">Build Mobile apps 10x Faster</h1>
           <p className="text-gray-600 mb-8">Generate UI, ask questions, debug, execute code, and much more.</p>
-          
+
           <div className="w-full max-w-3xl mb-8">
             {/* <div className="flex items-center justify-between mb-2">
               <p className="text-sm text-gray-600">Subscribe to Premium for higher message limits.</p>
@@ -187,8 +187,8 @@ export default function Component() {
               transition={{ duration: 0.5 }}
               className="relative"
             >
-              <Textarea 
-                placeholder="Ask v0rn a question..." 
+              <Textarea
+                placeholder="Ask v0rn a question..."
                 className="pr-12 min-h-[120px]"
               />
               <Button size="sm" className="absolute right-2 bottom-2">
@@ -199,8 +199,8 @@ export default function Component() {
 
           <div className="grid grid-cols-3 gap-4 w-full max-w-3xl">
             {projects.map((project, index) => (
-              <div 
-                key={index} 
+              <div
+                key={index}
                 className={`${project.color} p-4 rounded-lg shadow-sm`}
               >
                 <h3 className="font-semibold">{project.name}</h3>
@@ -211,12 +211,9 @@ export default function Component() {
 
         {/* Footer */}
         <footer className="flex justify-center items-center p-4 border-t text-sm text-gray-500">
-          <Link href="#" className="mx-2">FAQ</Link>
-          <Link href="#" className="mx-2">Terms</Link>
-          <Link href="#" className="mx-2">AI Policy</Link>
-          <Link href="#" className="mx-2">Privacy</Link>
-          <Link href="https://vercel.com" className="mx-2 flex items-center">
-            Vercel <ArrowUpIcon className="h-4 w-4 ml-1 transform rotate-45" />
+          Powered by{" "}
+          <Link href="https://expo.dev" className="mx-2 flex items-center">
+            Expo <ArrowUpIcon className="h-4 w-4 ml-1 transform rotate-45" />
           </Link>
         </footer>
       </div>

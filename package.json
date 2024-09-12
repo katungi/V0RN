@@ -36,6 +36,7 @@
     "lucide-react": "^0.429.0",
     "next": "14.2.6",
     "next-auth": "^4.24.7",
+    "next-themes": "^0.3.0",
     "openai-edge": "^1.2.2",
     "qrcode.react": "^4.0.1",
     "react": "^18",
