@@ -1,13 +1,13 @@
 import Link from "next/link";
 
 import SidebarItems from "./SidebarItems";
-import { Avatar, AvatarFallback } from "./ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 import { AuthSession, getUserAuth } from "@/lib/auth/utils";
 
 const Sidebar = async () => {
   const session = await getUserAuth();
-  if (session.session === null) return null;
+  // if (session.session === null) return null;
 
   return (
     <aside className="h-screen min-w-52 bg-muted hidden md:block p-4 pt-8 border-r border-border shadow-inner">
