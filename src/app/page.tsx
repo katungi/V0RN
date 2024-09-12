@@ -73,7 +73,11 @@ export default function Component() {
       {/* Sidebar */}
       <div className="w-16 bg-gray-100 flex flex-col items-center py-4 border-r">
         <div className="mb-8">
-          <img src="/placeholder.svg?height=32&width=32" alt="v0rn logo" className="w-8 h-8" />
+        <div className="mt-auto">
+          <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-semibold text-sm">
+            JD
+          </div>
+        </div>
         </div>
         <Dialog>
           <DialogTrigger asChild>
@@ -157,11 +161,6 @@ export default function Component() {
         <Button variant="ghost" size="icon">
           <RefreshCwIcon className="h-4 w-4" />
         </Button>
-        <div className="mt-auto">
-          <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-semibold text-sm">
-            JD
-          </div>
-        </div>
       </div>
 
       {/* Main content */}
@@ -169,19 +168,19 @@ export default function Component() {
         {/* Header */}
         <header className="flex justify-between items-center p-4 border-b">
           <div className="text-xl font-semibold">v0rn</div>
-          <div className="text-sm text-gray-500">Public Beta</div>
+          <div className="text-sm text-gray-500">Private Beta</div>
         </header>
 
         {/* Content */}
         <main className="flex-1 flex flex-col items-center justify-center p-8">
-          <h1 className="text-4xl font-bold mb-4">What can I help you ship today?</h1>
+          <h1 className="text-4xl font-bold mb-4">Build Mobile apps 10x Faster</h1>
           <p className="text-gray-600 mb-8">Generate UI, ask questions, debug, execute code, and much more.</p>
           
           <div className="w-full max-w-3xl mb-8">
-            <div className="flex items-center justify-between mb-2">
+            {/* <div className="flex items-center justify-between mb-2">
               <p className="text-sm text-gray-600">Subscribe to Premium for higher message limits.</p>
               <Button variant="outline" size="sm">Upgrade Plan</Button>
-            </div>
+            </div> */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={isLoaded ? { opacity: 1, y: 0 } : {}}
