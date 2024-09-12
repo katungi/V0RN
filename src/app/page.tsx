@@ -103,8 +103,64 @@ export default function Component() {
                         "Optionally select color scheme for your project."}
                   </DialogDescription>
                 </DialogHeader>
-                {/* Dialog content remains the same */}
-                {/* ... */}
+                {step === 1 && (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="project-name">Project Name</Label>
+                    <Input
+                      id="project-name"
+                      placeholder="Enter project name"
+                      value={projectName}
+                      onChange={(e) => setProjectName(e.target.value)}
+                    />
+                  </div>
+                  <Button onClick={handleNextStep} disabled={!projectName}>Next</Button>
+                </div>
+              )}
+              {step === 2 && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-2">
+                    {stylePreferences.map((style) => {
+                      const Icon = style.icon
+                      return (
+                        <Button
+                          key={style.name}
+                          variant="outline"
+                          className={`flex items-center justify-start space-x-2 ${style.color} ${selectedStyles.includes(style.name) ? 'border-primary' : ''}`}
+                          onClick={() => handleStylePreferenceToggle(style.name)}
+                        >
+                          <Icon className="h-4 w-4" />
+                          <span>{style.name}</span>
+                        </Button>
+                      )
+                    })}
+                  </div>
+                  <div className="flex justify-between">
+                    <Button variant="outline" onClick={() => setStep(1)}>Back</Button>
+                    <Button onClick={handleNextStep} disabled={selectedStyles.length === 0}>Next</Button>
+                  </div>
+                </div>
+              )}
+              {step === 3 && (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Primary Color</Label>
+                    <HexColorPicker color={primaryColor} onChange={setPrimaryColor} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Secondary Color</Label>
+                    <HexColorPicker color={secondaryColor} onChange={setSecondaryColor} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Tertiary Color</Label>
+                    <HexColorPicker color={tertiaryColor} onChange={setTertiaryColor} />
+                  </div>
+                  <div className="flex justify-between">
+                    <Button variant="outline" onClick={() => setStep(2)}>Back</Button>
+                    <Button onClick={handleNextStep}>Create Project</Button>
+                  </div>
+                </div>
+              )}
               </DialogContent>
             </Dialog>
             <Tooltip>
@@ -286,12 +342,9 @@ export default function Component() {
 
         {/* Footer */}
         <footer className="flex flex-wrap justify-center items-center p-4 border-t text-sm text-gray-500">
-          <Link href="#" className="mx-2 my-1">FAQ</Link>
-          <Link href="#" className="mx-2 my-1">Terms</Link>
-          <Link href="#" className="mx-2 my-1">AI Policy</Link>
-          <Link href="#" className="mx-2 my-1">Privacy</Link>
-          <Link href="https://vercel.com" className="mx-2 my-1 flex items-center">
-            Vercel <ArrowUpIcon className="h-4 w-4 ml-1 transform rotate-45" />
+          <p className="mx-2 my-1">Made with ❤️ by </p>
+          <Link href="https://katungi.vercel.app" className="mx-2 my-1 flex items-center">
+            Katungi <ArrowUpIcon className="h-4 w-4 ml-1 transform rotate-45" />
           </Link>
         </footer>
       </div>
