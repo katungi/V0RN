@@ -26,6 +26,7 @@
     "@radix-ui/react-scroll-area": "^1.1.0",
     "@radix-ui/react-slot": "^1.1.0",
     "@radix-ui/react-tabs": "^1.1.0",
+    "@radix-ui/react-tooltip": "^1.1.2",
     "@t3-oss/env-nextjs": "^0.11.1",
     "ai": "^3.3.26",
     "class-variance-authority": "^0.7.0",
