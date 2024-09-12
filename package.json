@@ -3,20 +3,27 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "prisma generate && next dev",
+    "build": "prisma generate && next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:studio": "prisma studio"
   },
   "dependencies": {
     "@ai-sdk/openai": "^0.0.55",
+    "@auth/core": "^0.34.2",
+    "@auth/prisma-adapter": "^2.4.2",
     "@copilotkit/react-core": "^1.1.2",
     "@copilotkit/react-textarea": "^1.1.2",
     "@copilotkit/react-ui": "^1.1.2",
     "@monaco-editor/react": "^4.6.0",
+    "@prisma/client": "5.19.1",
     "@radix-ui/react-scroll-area": "^1.1.0",
     "@radix-ui/react-slot": "^1.1.0",
     "@radix-ui/react-tabs": "^1.1.0",
+    "@t3-oss/env-nextjs": "^0.11.1",
     "ai": "^3.3.26",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
@@ -24,13 +31,15 @@
     "groq-sdk": "^0.7.0",
     "lucide-react": "^0.429.0",
     "next": "14.2.6",
+    "next-auth": "^4.24.7",
     "openai-edge": "^1.2.2",
     "qrcode.react": "^4.0.1",
     "react": "^18",
     "react-dom": "^18",
     "snack-sdk": "^6.1.2",
     "tailwind-merge": "^2.5.2",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwindcss-animate": "^1.0.7",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/node": "^20",
@@ -38,7 +47,9 @@
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "postcss": "^8",
+    "prisma": "^5.19.1",
     "tailwindcss": "^3.4.1",
-    "typescript": "^5"
+    "typescript": "^5",
+    "zod-prisma": "^0.5.4"
   }
 }
