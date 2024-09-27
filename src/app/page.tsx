@@ -1,17 +1,19 @@
 "use client"
 import { useState, useEffect } from "react"
+import { useSession, signIn, signOut } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { PlusIcon, ClockIcon, FlagIcon, ArrowUpIcon, MinimizeIcon, Paintbrush, Building2, Gamepad2, Shirt, Rocket } from "lucide-react"
+import { PlusIcon, ClockIcon, FlagIcon, ArrowUpIcon, MinimizeIcon, Paintbrush, Building2, Gamepad2, Shirt, Rocket, Github, LogOut } from "lucide-react"
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { HexColorPicker } from "react-colorful"
-import SparklesText from "@/components/magicui/sparkles-text";
-import router from "next/navigation"
+import SparklesText from "@/components/magicui/sparkles-text"
+import { useRouter } from 'next/navigation'
+import Image from "next/image"
 
 const stylePreferences = [
   { name: "Minimalist", icon: MinimizeIcon, color: "bg-gray-100" },
@@ -23,8 +25,9 @@ const stylePreferences = [
 ]
 
 export default function Component() {
+  const { data: session, status } = useSession()
+  const router = useRouter()
   const [isLoaded, setIsLoaded] = useState(false)
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [step, setStep] = useState(1)
   const [projectName, setProjectName] = useState("")
   const [selectedStyles, setSelectedStyles] = useState([])
@@ -34,9 +37,6 @@ export default function Component() {
 
   useEffect(() => {
     setIsLoaded(true)
-    // Here you would typically check the user's login status
-    // For this example, we'll just set it to false
-    setIsLoggedIn(false)
   }, [])
 
   const projects = [
@@ -48,7 +48,7 @@ export default function Component() {
     { name: "Zeta Zone", color: "bg-indigo-100" },
   ]
 
-  const handleStylePreferenceToggle = (style: string) => {
+  const handleStylePreferenceToggle = (style) => {
     setSelectedStyles(prev =>
       prev.includes(style) ? prev.filter(s => s !== style) : [...prev, style]
     )
@@ -60,9 +60,8 @@ export default function Component() {
     } else if (step === 2 && selectedStyles.length > 0) {
       setStep(3)
     } else if (step === 3) {
-      // Here you would typically save the new project
       console.log("New project:", { name: projectName, styles: selectedStyles, colors: { primary: primaryColor, secondary: secondaryColor, tertiary: tertiaryColor } })
-      router.push("/projects")
+      router.push("/demo")
     }
   }
 
@@ -76,20 +75,33 @@ export default function Component() {
   }
 
   const handleLogin = () => {
-    // Here you would typically implement the login logic
-    setIsLoggedIn(true)
+    signIn('github')
+  }
+
+  const handleLogout = () => {
+    signOut()
   }
 
   return (
     <div className="flex flex-col md:flex-row h-screen bg-white">
       {/* Sidebar for desktop (only shown when logged in) */}
-      {isLoggedIn && (
+      {status === "authenticated" && (
         <div className="hidden md:flex w-16 bg-gray-100 flex-col items-center py-4 border-r">
           <div className="mb-8">
             <div className="mt-auto">
-              <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-semibold text-sm">
-                JD
-              </div>
+              {session.user?.image ? (
+                <Image
+                  src={session.user.image}
+                  alt={session.user.name || "User"}
+                  width={32}
+                  height={32}
+                  className="rounded-full"
+                />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-semibold text-sm">
+                  {session.user?.name ? session.user.name[0].toUpperCase() : 'U'}
+                </div>
+              )}
             </div>
           </div>
           <TooltipProvider>
@@ -196,6 +208,16 @@ export default function Component() {
                 <p>Flagged items</p>
               </TooltipContent>
             </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" onClick={handleLogout} className="mt-auto">
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                <p>Log out</p>
+              </TooltipContent>
+            </Tooltip>
           </TooltipProvider>
         </div>
       )}
@@ -205,7 +227,6 @@ export default function Component() {
         {/* Content */}
         <main className="flex-1 flex flex-col items-center justify-center p-4 md:p-8">
           <SparklesText text="What can I help you ship today?" />
-          {/* <h1 className="text-3xl md:text-4xl font-bold mb-4 text-center"></h1> */}
           <p className="text-gray-600 mb-8 text-center mt-8">Generate UI, ask questions, debug, execute code, and much more.</p>
 
           <div className="w-full max-w-3xl mb-8">
@@ -215,7 +236,7 @@ export default function Component() {
               transition={{ duration: 0.5 }}
               className="relative"
             >
-              {isLoggedIn ? (
+              {status === "authenticated" ? (
                 <>
                   <Textarea
                     placeholder="Ask v0rn a question..."
@@ -226,14 +247,14 @@ export default function Component() {
                   </Button>
                 </>
               ) : (
-                <Button onClick={handleLogin} className="w-full">
-                  Login
+                <Button onClick={handleLogin} type='submit' className="m-4" variant="secondary">
+                  Sign In with GitHub
+                  <Github className="w-4 h-4 ml-4" />
                 </Button>
               )}
             </motion.div>
           </div>
-
-          {isLoggedIn && (
+          {status === "authenticated" && (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 w-full max-w-3xl">
               {projects.map((project, index) => (
                 <div

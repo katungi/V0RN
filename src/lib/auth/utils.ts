@@ -3,8 +3,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter"
 import { DefaultSession, getServerSession, NextAuthOptions } from "next-auth";
 import { Adapter } from "next-auth/adapters";
 import { redirect } from "next/navigation";
-import { env } from "@/lib/env.mjs"
-
+import GitHubProvider, { GithubProfile } from "next-auth/providers/github";
 
 declare module "next-auth" {
   interface Session {
@@ -33,7 +32,19 @@ export const authOptions: NextAuthOptions = {
     },
   },
   providers: [
-     
+    GitHubProvider({
+      clientId: process.env.GITHUB_CLIENT_ID as string,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET as string,
+      profile(profile: GithubProfile) {
+        return {
+          id: profile.id.toString(),
+          name: profile.name,
+          email: profile.email,
+          image: profile.avatar_url,
+          userName: profile.login,
+        }
+      },
+    }),
   ],
 };
 

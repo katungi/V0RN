@@ -6,6 +6,7 @@ export const userSchema = z.object({
   name: z.string().nullish(),
   email: z.string().nullish(),
   emailVerified: z.date().nullish(),
+  userName: z.string().nullish(),
   image: z.string().nullish(),
 })
 
