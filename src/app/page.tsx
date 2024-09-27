@@ -48,7 +48,7 @@ export default function Component() {
     { name: "Zeta Zone", color: "bg-indigo-100" },
   ]
 
-  const handleStylePreferenceToggle = (style) => {
+  const handleStylePreferenceToggle = (style: string) => {
     setSelectedStyles(prev =>
       prev.includes(style) ? prev.filter(s => s !== style) : [...prev, style]
     )
@@ -62,7 +62,7 @@ export default function Component() {
     } else if (step === 3) {
       // Here you would typically save the new project
       console.log("New project:", { name: projectName, styles: selectedStyles, colors: { primary: primaryColor, secondary: secondaryColor, tertiary: tertiaryColor } })
-      router.push("/demo")
+      router.push("/projects")
     }
   }
 
